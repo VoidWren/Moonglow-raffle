@@ -287,28 +287,27 @@ function drawWheel(rotation) {
 }
 
 // ── spin logic ──────────────────────────────────────────────────────────────
-// Find the winner's index
 const winnerIdx = names.findIndex(n => n === winnerName);
 const targetIdx = winnerIdx >= 0 ? winnerIdx : 0;
 
-// The wheel stops so the winner segment is under the top pointer
-// pointer is at angle -π/2 (top). We want targetIdx's midpoint there.
-// midpoint of segment targetIdx (when rotation=0) = targetIdx * slice + slice/2
-// we want rotation + targetIdx*slice + slice/2 = 2π*k + (3π/2) [pointing up from top]
-// so rotation = 3π/2 - targetIdx*slice - slice/2 - small correction for pointer
-
 const SPIN_DURATION = 6000; // ms
-const EXTRA_ROTATIONS = 5;  // full spins for drama
+const EXTRA_ROTATIONS = 6;  // full spins for drama
 
-// Pointer sits at -π/2 (top of canvas = 270°).
-// Segment i starts at: rotation + i*slice (canvas 0 = 3 o'clock, clockwise).
-// We want the midpoint of targetIdx's segment to align with -π/2.
-// midpoint angle (absolute) = rotation + targetIdx*slice + slice/2
-// Set that equal to -π/2 (mod 2π):
-// rotation = -π/2 - targetIdx*slice - slice/2
-const targetAngle = (-Math.PI / 2) - (targetIdx * slice) - (slice / 2);
-// Add extra full spins so it always spins forward (positive direction)
-const finalAngle  = targetAngle + (EXTRA_ROTATIONS + 1) * 2 * Math.PI;
+// The pointer is the teal triangle at the TOP of the canvas (12 o'clock).
+// Canvas arc 0 = 3 o'clock, goes clockwise.
+// Segment i occupies angles [i*slice, (i+1)*slice] relative to the rotation.
+// We want segment targetIdx's MIDPOINT to sit at 12 o'clock = -π/2.
+//
+// At rest (rotation R), segment i midpoint is at: R + i*slice + slice/2
+// For that to equal -π/2:  R = -π/2 - targetIdx*slice - slice/2
+//
+// We always spin forward (positive), so add enough full rotations
+// to guarantee finalAngle > 0 and we get the extra drama spins.
+
+const restAngle = (-Math.PI / 2) - (targetIdx * slice) - (slice / 2);
+// Normalise to [0, 2π) then add extra spins
+const normalised = ((restAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+const finalAngle = normalised + EXTRA_ROTATIONS * 2 * Math.PI;
 
 let startTime = null;
 let done = false;
