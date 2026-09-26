@@ -293,27 +293,24 @@ const targetIdx = winnerIdx >= 0 ? winnerIdx : 0;
 const SPIN_DURATION = 6000; // ms
 const EXTRA_ROTATIONS = 6;  // full spins for drama
 
-// The pointer is the teal triangle at the TOP of the canvas (12 o'clock).
-// Canvas arc 0 = 3 o'clock, goes clockwise.
-// Segment i occupies angles [i*slice, (i+1)*slice] relative to the rotation.
-// We want segment targetIdx's MIDPOINT to sit at 12 o'clock = -π/2.
+// How the wheel works:
+// drawWheel(rotation) draws segment i starting at angle: rotation + i*slice
+// The label for segment i is drawn at the midpoint: rotation + i*slice + slice/2
+// The pointer sits at the TOP of the canvas = -π/2 (12 o'clock position)
 //
-// At rest (rotation R), segment i midpoint is at: R + i*slice + slice/2
-// For that to equal -π/2:  R = -π/2 - targetIdx*slice - slice/2
+// To land winner segment (targetIdx) under the pointer:
+//   rotation + targetIdx*slice + slice/2 = -π/2  (mod 2π)
+//   rotation = -π/2 - targetIdx*slice - slice/2
 //
-// We always spin forward (positive), so add enough full rotations
-// to guarantee finalAngle > 0 and we get the extra drama spins.
+// Normalise to [0, 2π) so we always spin forward, then add extra rotations.
 
-const restAngle = (-Math.PI / 2) - (targetIdx * slice) - (slice / 2);
-// Normalise to [0, 2π) then add extra spins
-const normalised = ((restAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-const finalAngle = normalised + EXTRA_ROTATIONS * 2 * Math.PI;
+const TAU = 2 * Math.PI;
+const stopRotation = (((- Math.PI / 2) - (targetIdx * slice) - (slice / 2)) % TAU + TAU * 10) % TAU;
+const finalAngle   = stopRotation + EXTRA_ROTATIONS * TAU;
 
 let startTime = null;
-let done = false;
 
 function easeOut(t) {
-  // dramatic slow-down curve
   return 1 - Math.pow(1 - t, 4);
 }
 
@@ -328,8 +325,7 @@ function tick(ts) {
   if (t < 1) {
     requestAnimationFrame(tick);
   } else {
-    done = true;
-    drawWheel(finalAngle % (2 * Math.PI));
+    drawWheel(stopRotation);   // snap to exact stop position
     wc.classList.add('done');
     showWinner();
   }
