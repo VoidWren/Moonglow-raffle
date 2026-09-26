@@ -300,8 +300,15 @@ const targetIdx = winnerIdx >= 0 ? winnerIdx : 0;
 const SPIN_DURATION = 6000; // ms
 const EXTRA_ROTATIONS = 5;  // full spins for drama
 
-const targetAngle = (3 * Math.PI / 2) - (targetIdx * slice) - (slice / 2);
-const finalAngle  = targetAngle + EXTRA_ROTATIONS * 2 * Math.PI;
+// Pointer sits at -π/2 (top of canvas = 270°).
+// Segment i starts at: rotation + i*slice (canvas 0 = 3 o'clock, clockwise).
+// We want the midpoint of targetIdx's segment to align with -π/2.
+// midpoint angle (absolute) = rotation + targetIdx*slice + slice/2
+// Set that equal to -π/2 (mod 2π):
+// rotation = -π/2 - targetIdx*slice - slice/2
+const targetAngle = (-Math.PI / 2) - (targetIdx * slice) - (slice / 2);
+// Add extra full spins so it always spins forward (positive direction)
+const finalAngle  = targetAngle + (EXTRA_ROTATIONS + 1) * 2 * Math.PI;
 
 let startTime = null;
 let done = false;
