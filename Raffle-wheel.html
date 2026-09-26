@@ -1,0 +1,353 @@
+<title>Moonglow Raffle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --bg:        #0d0b1a;
+    --surface:   #13112a;
+    --magenta:   #c026d3;
+    --teal:      #0ff4c6;
+    --violet:    #7c3aed;
+    --pink:      #f472b6;
+    --star:      #e9e4f8;
+    --dim:       #7b72a8;
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--star);
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── aurora background ── */
+  #aurora {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 40% at 20% 0%, rgba(192,38,211,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 35% at 80% 5%, rgba(15,244,198,0.12) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 50% at 50% 100%, rgba(124,58,237,0.15) 0%, transparent 70%);
+    animation: aurora-shift 8s ease-in-out infinite alternate;
+  }
+  @keyframes aurora-shift {
+    0%   { opacity: 0.7; transform: scaleX(1); }
+    100% { opacity: 1;   transform: scaleX(1.05); }
+  }
+
+  /* ── stars ── */
+  #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  /* ── layout ── */
+  #app {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 28px;
+    min-height: 100%; padding: 24px 16px;
+  }
+
+  /* ── title ── */
+  .page-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.1rem, 4vw, 1.6rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--magenta), var(--pink), var(--teal));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    text-align: center;
+  }
+
+  /* ── wheel container ── */
+  #wheel-wrap {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* pointer/arrow at top */
+  #pointer {
+    position: absolute;
+    top: -14px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 28px solid var(--teal);
+    filter: drop-shadow(0 0 8px var(--teal));
+    z-index: 10;
+  }
+
+  #wheel-canvas {
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 4px rgba(15,244,198,0.3),
+      0 0 40px rgba(192,38,211,0.5),
+      0 0 80px rgba(124,58,237,0.3);
+    display: block;
+  }
+
+  /* center cap */
+  #center-cap {
+    position: absolute;
+    width: 54px; height: 54px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #1a1535 0%, #0d0b1a 100%);
+    border: 3px solid var(--teal);
+    box-shadow: 0 0 16px rgba(15,244,198,0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 20px;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ── status / winner ── */
+  #status {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1rem, 3.5vw, 1.4rem);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-align: center;
+    min-height: 2em;
+    transition: opacity 0.4s;
+  }
+  #status.spinning { color: var(--dim); font-size: clamp(0.85rem, 3vw, 1rem); font-family: 'Inter', sans-serif; font-weight: 500; letter-spacing: 0.04em; }
+  #status.winner   { color: var(--teal); text-shadow: 0 0 20px rgba(15,244,198,0.8); }
+
+  /* ── winner burst ── */
+  #winner-name {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.5rem, 6vw, 2.8rem);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-align: center;
+    background: linear-gradient(135deg, var(--teal), var(--star), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    min-height: 1.2em;
+  }
+  #winner-name.show { opacity: 1; transform: scale(1); }
+
+  /* ── entry list pills ── */
+  #entry-list {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center;
+    max-width: 520px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .entry-pill {
+    background: rgba(124,58,237,0.2);
+    border: 1px solid rgba(124,58,237,0.4);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    color: var(--star);
+    white-space: nowrap;
+  }
+
+  /* ── winner glow pulse ── */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(15,244,198,0.3), 0 0 40px rgba(192,38,211,0.5), 0 0 80px rgba(124,58,237,0.3); }
+    50%       { box-shadow: 0 0 0 6px rgba(15,244,198,0.6), 0 0 60px rgba(192,38,211,0.8), 0 0 120px rgba(15,244,198,0.4); }
+  }
+  #wheel-canvas.done { animation: glow-pulse 1.5s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    #aurora, #wheel-canvas.done { animation: none; }
+  }
+</style>
+
+<!-- star canvas -->
+<canvas id="stars"></canvas>
+<div id="aurora"></div>
+
+<div id="app">
+  <div class="page-title">✦ Moonglow Raffle ✦</div>
+
+  <div id="wheel-wrap">
+    <div id="pointer"></div>
+    <canvas id="wheel-canvas" width="380" height="380"></canvas>
+    <div id="center-cap">✦</div>
+  </div>
+
+  <div id="status" class="spinning">Spinning the wheel…</div>
+  <div id="winner-name"></div>
+  <div id="entry-list"></div>
+</div>
+
+<script>
+// ── parse names from URL hash ──────────────────────────────────────────────
+// format: #names=Alice,Bob,Carol&winner=Bob
+function decode(s){ try{ return decodeURIComponent(s); } catch{ return s; } }
+
+const params = {};
+location.hash.slice(1).split('&').forEach(pair => {
+  const [k, v] = pair.split('=');
+  if (k) params[decode(k)] = decode(v || '');
+});
+
+const rawNames  = params.names  ? params.names.split(',').map(n => n.trim()).filter(Boolean) : [];
+const winner    = params.winner ? params.winner.trim() : null;
+const raffle    = params.raffle || 'Raffle';
+
+// Fallback demo names if page loaded without params
+const names = rawNames.length ? rawNames : ['Alice', 'Bob', 'Carol', 'Diana', 'Ethan', 'Fiona'];
+const winnerName = winner || names[Math.floor(Math.random() * names.length)];
+
+// ── stars ──────────────────────────────────────────────────────────────────
+(function() {
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  function resize(){ c.width = innerWidth; c.height = innerHeight; draw(); }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(let i=0;i<200;i++){
+      const x = Math.random()*c.width, y = Math.random()*c.height;
+      const r = Math.random()*1.2;
+      const a = Math.random()*0.8+0.2;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle = `rgba(233,228,248,${a})`; ctx.fill();
+    }
+  }
+  window.addEventListener('resize', resize); resize();
+})();
+
+// ── wheel palette — alternating segments ────────────────────────────────────
+const PALETTES = [
+  ['#5b21b6','#e9e4f8'],  // violet + star-white text
+  ['#0e9a7e','#0d0b1a'],  // teal + dark text
+  ['#9d174d','#f9a8d4'],  // deep pink + light pink text
+  ['#6d28d9','#c4b5fd'],  // purple + lavender text
+  ['#0369a1','#bae6fd'],  // deep teal-blue + sky text
+  ['#7c1d6f','#f9e8fb'],  // dark magenta + pale text
+];
+
+// ── draw wheel ──────────────────────────────────────────────────────────────
+const wc = document.getElementById('wheel-canvas');
+const ctx = wc.getContext('2d');
+const SIZE = 380;
+const cx = SIZE/2, cy = SIZE/2, R = SIZE/2 - 4;
+const N = names.length;
+const slice = (2 * Math.PI) / N;
+
+function drawWheel(rotation) {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+
+  // outer ring glow
+  ctx.save();
+  ctx.shadowBlur = 24; ctx.shadowColor = '#c026d3';
+  ctx.beginPath(); ctx.arc(cx, cy, R+2, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(192,38,211,0.6)'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.restore();
+
+  for (let i = 0; i < N; i++) {
+    const start = rotation + i * slice;
+    const end   = start + slice;
+    const pal   = PALETTES[i % PALETTES.length];
+
+    // segment fill
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, start, end);
+    ctx.closePath();
+    ctx.fillStyle = pal[0];
+    ctx.fill();
+
+    // segment border
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, start, end);
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(15,244,198,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // label
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + slice/2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = pal[1];
+    ctx.font = `${N > 12 ? 11 : N > 8 ? 13 : 15}px 'Inter', sans-serif`;
+    ctx.fontWeight = '600';
+
+    const label = names[i].length > 16 ? names[i].slice(0,14)+'…' : names[i];
+    ctx.fillText(label, R - 14, 5);
+    ctx.restore();
+  }
+}
+
+// ── spin logic ──────────────────────────────────────────────────────────────
+// Find the winner's index
+const winnerIdx = names.findIndex(n => n === winnerName);
+const targetIdx = winnerIdx >= 0 ? winnerIdx : 0;
+
+// The wheel stops so the winner segment is under the top pointer
+// pointer is at angle -π/2 (top). We want targetIdx's midpoint there.
+// midpoint of segment targetIdx (when rotation=0) = targetIdx * slice + slice/2
+// we want rotation + targetIdx*slice + slice/2 = 2π*k + (3π/2) [pointing up from top]
+// so rotation = 3π/2 - targetIdx*slice - slice/2 - small correction for pointer
+
+const SPIN_DURATION = 6000; // ms
+const EXTRA_ROTATIONS = 5;  // full spins for drama
+
+const targetAngle = (3 * Math.PI / 2) - (targetIdx * slice) - (slice / 2);
+const finalAngle  = targetAngle + EXTRA_ROTATIONS * 2 * Math.PI;
+
+let startTime = null;
+let done = false;
+
+function easeOut(t) {
+  // dramatic slow-down curve
+  return 1 - Math.pow(1 - t, 4);
+}
+
+function tick(ts) {
+  if (!startTime) startTime = ts;
+  const elapsed = ts - startTime;
+  const t = Math.min(elapsed / SPIN_DURATION, 1);
+  const angle = easeOut(t) * finalAngle;
+
+  drawWheel(angle);
+
+  if (t < 1) {
+    requestAnimationFrame(tick);
+  } else {
+    done = true;
+    drawWheel(finalAngle % (2 * Math.PI));
+    wc.classList.add('done');
+    showWinner();
+  }
+}
+
+function showWinner() {
+  const status = document.getElementById('status');
+  const winEl  = document.getElementById('winner-name');
+  status.textContent = '🎉 Winner!';
+  status.className = 'winner';
+  winEl.textContent = winnerName;
+  setTimeout(() => winEl.classList.add('show'), 50);
+}
+
+// ── entry list pills ────────────────────────────────────────────────────────
+const list = document.getElementById('entry-list');
+names.forEach(n => {
+  const pill = document.createElement('div');
+  pill.className = 'entry-pill';
+  pill.textContent = n;
+  list.appendChild(pill);
+});
+
+// ── kick off ────────────────────────────────────────────────────────────────
+drawWheel(0);
+requestAnimationFrame(tick);
+</script>
